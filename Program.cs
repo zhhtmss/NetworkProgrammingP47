@@ -7,7 +7,9 @@ namespace NetworkProgrammingP47
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            new HttpDemo().RunAsync().Wait();
+            // new HttpDemo().RunAsync().Wait();
+            new ApiDemo().Run();
+            
             Console.WriteLine("Program finished");
         }
     }

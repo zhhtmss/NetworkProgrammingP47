@@ -11,26 +11,32 @@ namespace NetworkProgrammingP47
 	internal class ApiDemo
 	{
 		private Exchange exchange;
-        public void Run()
+        private List<(string Name, string Abbr, double Rate, double ReverseRate)> savedRates;
+        public void RunHW()
 		{
-			Console.WriteLine("Курси валют НБУ");
-			DemoXmlOrm();
-			Console.WriteLine($"Заватажено {exchange.Currencies.Count()} курсів");
-			while (true) 
-			{
-                Console.WriteLine("Введіть фрагмент назви валюти: ");
-                String? fragment = Console.ReadLine();
-				if (String.IsNullOrEmpty(fragment)) break;
-                var query = exchange.Currencies.Where(c => c.ShortName.Contains(fragment, StringComparison.OrdinalIgnoreCase) ||
-					c.FullName.Contains(fragment, StringComparison.OrdinalIgnoreCase));
-				Console.WriteLine($"Знайдено {query.Count()} результатів:");
-				foreach(var c in query)
-				{
-					Console.WriteLine(c);
-                }
-            }
-			
+            Console.WriteLine("Курси валют НБУ");
+            DemoJson();
         }
+        //public void Run()
+		//{
+		//	Console.WriteLine("Курси валют НБУ");
+		//	DemoXmlOrm();
+		//	Console.WriteLine($"Заватажено {exchange.Currencies.Count()} курсів");
+		//	while (true) 
+		//	{
+        //        Console.WriteLine("Введіть фрагмент назви валюти: ");
+        //        String? fragment = Console.ReadLine();
+		//		if (String.IsNullOrEmpty(fragment)) break;
+        //        var query = exchange.Currencies.Where(c => c.ShortName.Contains(fragment, StringComparison.OrdinalIgnoreCase) ||
+		//			c.FullName.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+		//		Console.WriteLine($"Знайдено {query.Count()} результатів:");
+		//		foreach(var c in query)
+		//		{
+		//			Console.WriteLine(c);
+        //        }
+        //    }
+		//	
+        //}
 
         private void DemoJsonOrm()
         {
@@ -52,7 +58,8 @@ namespace NetworkProgrammingP47
 			if (jsonElement.ValueKind == JsonValueKind.Array)
 			{
 				Console.WriteLine("Одержано {0} записів", jsonElement.GetArrayLength());
-				foreach(var rate in jsonElement.EnumerateArray())
+                savedRates = new List<(string, string, double, double)>();
+                foreach (var rate in jsonElement.EnumerateArray())
 				{
 					//Console.WriteLine(String.Join(", ",
 					//	rate.EnumerateObject()
@@ -63,7 +70,10 @@ namespace NetworkProgrammingP47
 					double course = rate.GetProperty("rate").GetDouble();
 					double reverseCourse = 1.0 / course;
                     Console.WriteLine($"{name}: 1 {abbr} = {course:F2} UAH, 1 UAH = {reverseCourse:F4} {abbr}");
+                    
+					savedRates.Add((name, abbr, course, reverseCourse));
                 }
+                ShowMenu();
             }
 			else
 			{
@@ -106,6 +116,79 @@ namespace NetworkProgrammingP47
             }
         }
 
-		
+        /*для дз*/
+        private void ShowMenu()
+        {
+            while (true)
+            {
+                Console.WriteLine("\n=== МЕНЮ ===");
+                Console.WriteLine("1: Вивести за збільшенням курсу");
+                Console.WriteLine("2: Вивести за зменшенням курсу");
+                Console.WriteLine("0: Вихід");
+                Console.Write("Ваш вибір: ");
+
+                string? choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        DisplayByRateAscending();
+                        break;
+                    case "2":
+                        DisplayByRateDescending();
+                        break;
+                    case "0":
+                        Console.WriteLine("До побачення!");
+                        return;
+                    default:
+                        Console.WriteLine("Невірний вибір. Спробуйте ще раз.");
+                        break;
+                }
+            }
+        }
+
+        private void DisplayByRateAscending()
+        {
+            if (savedRates == null || savedRates.Count == 0)
+            {
+                Console.WriteLine("Немає збережених курсів валют");
+                return;
+            }
+
+            var sortedRates = savedRates.OrderBy(r => r.Rate).ToList();
+
+            Console.WriteLine("\n=== КУРСИ ВАЛЮТ (за збільшенням курсу) ===\n");
+            Console.WriteLine($"{"Валюта"} {"Код"} {"Курс (UAH)"} {"Обернений курс"}");
+            Console.WriteLine("-------------------------");
+
+            foreach (var rate in sortedRates)
+            {
+                Console.WriteLine($"{rate.Name}: 1 {rate.Abbr} = {rate.Rate:F2} UAH, 1 UAH = {rate.ReverseRate:F4} {rate.Abbr}");
+            }
+
+            Console.WriteLine($"\nВсього: {sortedRates.Count} валют");
+        }
+
+        private void DisplayByRateDescending()
+        {
+            if (savedRates == null || savedRates.Count == 0)
+            {
+                Console.WriteLine("Немає збережених курсів валют");
+                return;
+            }
+
+            var sortedRates = savedRates.OrderByDescending(r => r.Rate).ToList();
+
+            Console.WriteLine("\n=== КУРСИ ВАЛЮТ (за зменшенням курсу) ===\n");
+            Console.WriteLine($"{"Валюта"} {"Код"} {"Курс (UAH)"} {"Обернений курс"}");
+            Console.WriteLine("-------------------------");
+
+            foreach (var rate in sortedRates)
+            {
+                Console.WriteLine($"{rate.Name}: 1 {rate.Abbr} = {rate.Rate:F2} UAH, 1 UAH = {rate.ReverseRate:F4} {rate.Abbr}");
+            }
+
+            Console.WriteLine($"\nВсього: {sortedRates.Count} валют");
+        }
     }
 }

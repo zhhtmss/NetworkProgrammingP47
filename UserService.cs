@@ -61,7 +61,7 @@ namespace NetworkProgrammingP47
             while (true)
             {
                 password = Console.ReadLine()!;
-                if (password.Length >= 6 && true)
+                if (Regex.IsMatch(password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$"))
                 {
                     break;
                 }

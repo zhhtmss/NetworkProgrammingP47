@@ -1,4 +1,5 @@
-﻿using NetworkProgrammingP47.Services;
+﻿using NetworkProgrammingP47.Dal;
+using NetworkProgrammingP47.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,14 +11,18 @@ namespace NetworkProgrammingP47
 {
     internal class UserService
     {
+        private DataAccessor dataAccessor;
         public void Run()
         {
+            try { dataAccessor = new DataAccessor();  } 
+            catch { return; }
             while (true)
             {
                 Console.WriteLine("Сервіс роботи з користувачами:\n" +
                     "1: реєстрація\n" +
                     "2: автентифікація(вхід)\n" +
                     "3: забув пароль\n" +
+                    "i: інсталювати таблиці БД\n" +
                     "0: вихід"
                 );
                 var keyInfo = Console.ReadKey();
@@ -28,6 +33,7 @@ namespace NetworkProgrammingP47
                     case '1': SignUp(); break;
                     case '2': Console.WriteLine(OtpService.ConfirmCode()); break;
                     case '3': Console.WriteLine(OtpService.TempPassword()); break;
+                    case 'i': try { dataAccessor.InstallTables(); } catch { return; } break;
 
                     default: Console.WriteLine("\nВибір не розпізнано\n"); break;
                 }
@@ -50,7 +56,7 @@ namespace NetworkProgrammingP47
                     Console.WriteLine("E-mail не відповідає формату, відкоригуйте");
                 }
             }
-            Console.WriteLine(email);
+            Console.Write("Створіть пароль: ");
             String password = "";
             while (true)
             {
@@ -65,10 +71,27 @@ namespace NetworkProgrammingP47
                         "серед яких має бути цифра, літера та спецсимвол");
                 }
             }
+            Console.Write("Як до вас звертатися? ");
+            String name = Console.ReadLine()!;
+
             String confirmCode = OtpService.ConfirmCode();
+            
+            try
+            {
+                dataAccessor.AddUser(new()
+                {
+                    Name = name,
+                    Email = email,
+                    ConfirmCode = confirmCode,
+                    Password = password
+                });
+            }
+            catch { return; }
             EmailService.SendConfirmCode(email, confirmCode);
-            Console.Write("Введіть код, надісланий на вашу пошту: ");
-            String code = Console.ReadLine()!;
+
+            //Console.Write("Введіть код, надісланий на вашу пошту: ");
+            //String code = Console.ReadLine()!;
+            Console.WriteLine("Ви успішно зареєстровані. Використовуйте пошту та пароль для входу");
         }
     }
 }

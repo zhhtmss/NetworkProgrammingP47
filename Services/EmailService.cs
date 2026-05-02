@@ -42,17 +42,39 @@ namespace NetworkProgrammingP47.Services
                 return _smtpData;
             }
         }
+
+        public static void SendNewPassword(string email, string password)
+        {
+            SendEmail(email, "Ваш новий пароль",
+                $@"<html>
+                <h1>Шановний клієнте!</h1>
+                <p>Ви запитали новий пароль: <b>{password}</b></p>
+                </html>"
+            );
+        }
+
+
+
         public static void SendConfirmCode(string email, string code)
+        {
+
+            SendEmail(email, "Вітаємо з реєстрацією!",
+                $@"<html>
+                <h1>Шановний клієнте!</h1>
+                <p>Для завершення реєстрації введіть код підтвердження <b>{code}</b></p>
+                </html>"
+            );
+        }
+
+            
+        private static void SendEmail(string email, string subject, string body)
         {
             MailMessage mailMessage = new()
             {
                 From = new MailAddress(SmtpData.Email, "NP P47", Encoding.UTF8),
                 IsBodyHtml = true,
-                Subject = "Вітаємо з реєстрацією!",
-                Body = $@"<html>
-                <h1>Шановний клієнте!</h1>
-                <p>Для завершення реєстрації введіть код підтвердження <b>{code}</b></p>
-                </html>",
+                Subject = subject,
+                Body = body,
             };
 
             mailMessage.To.Add(email);

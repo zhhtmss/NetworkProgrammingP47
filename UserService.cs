@@ -4,6 +4,7 @@ using NetworkProgrammingP47.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -34,13 +35,44 @@ namespace NetworkProgrammingP47
                     case '0': return;
                     case '1': SignUp(); break;
                     case '2': SignIn(); break;
-                    case '3': Console.WriteLine(OtpService.TempPassword()); break;
+                    case '3': ForgotPassword(); break;
                     case 'i': try { dataAccessor.InstallTables(); } catch { return; } break;
 
                     default: Console.WriteLine("\nВибір не розпізнано\n"); break;
                 }
             }
         } 
+
+
+        private void ForgotPassword()
+        {
+            Console.Write("Введіть ваш E-mail:");
+            String email = Console.ReadLine()!;
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                Console.WriteLine("E-mail не може бути порожнім. Процес відновлення скасовано.");
+                return;
+            }
+            Console.Write("Введіть ваше ім'я, вказане при реєстрації: ");
+            String name = Console.ReadLine()!;
+            String? newPassword;
+            try
+            {
+                newPassword = dataAccessor.ResetPassword(email, name);
+            }
+            catch
+            {
+                Console.WriteLine("Виникла помилка, процес зупинено");
+                return;
+
+            }
+            if(newPassword != null)
+            {
+                EmailService.SendNewPassword(email, newPassword);
+                Console.WriteLine("Sent");
+            }
+            Console.WriteLine("Якщо ви ввелі дані правильно, то на вашу пошту надіслано новий пароль");
+        }
 
         private void SignIn()
         {
@@ -132,20 +164,43 @@ namespace NetworkProgrammingP47
             {
                 Console.Write("Введіть E-mail: ");
                 email = Console.ReadLine()!;
-                if (Regex.IsMatch(email, @"^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$"))
+
+                if (string.IsNullOrWhiteSpace(email))
                 {
-                    break;
+                    Console.WriteLine("E-mail не може бути порожнім. Реєстрацію скасовано.");
+                    return; 
                 }
-                else
+                if (!Regex.IsMatch(email, @"^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$"))
                 {
                     Console.WriteLine("E-mail не відповідає формату, відкоригуйте");
+                    return;
                 }
+                try
+                {
+                    if (dataAccessor.IsEmailUsed(email))
+                    {
+                        Console.WriteLine("Цей E-mail вже зареєстрований! Використайте інший.");
+                        continue;
+                    }
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Помилка перевірки: {ex.Message}");
+                    continue;
+                }
+
             }
             Console.Write("Створіть пароль: ");
-            String password = "";
+            String? password = "";
             while (true)
             {
-                password = Console.ReadLine()!;
+                password = InputPassword();
+                if (password == null)
+                {
+                    Console.WriteLine("Реєстрацію скасовано.");
+                    return;
+                }
                 if (Regex.IsMatch(password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$"))
                 {
                     break;

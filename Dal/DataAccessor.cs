@@ -158,5 +158,44 @@ namespace NetworkProgrammingP47.Dal
                 throw;
             }
         }
+
+        public void UpdateUser(UserEntity user)
+        {
+            using var connection = new SqlConnection(connectionString);
+            String dk = KdfService.Dk(user.Dk, user.Id.ToString());
+
+            string query = @"
+                     UPDATE Users 
+                     SET 
+                         Name = @Name,
+                         Dk = @Password,
+                         Code = @ConfirmCode,
+                         CodeAt = @ConfirmCodeSentAt
+                     WHERE 
+                         Id = @Id";
+
+            using var command = new SqlCommand(query, connection);
+
+            command.Parameters.AddWithValue("@Id", user.Id);
+            command.Parameters.AddWithValue("@Name", user.Name);
+            command.Parameters.AddWithValue("@Password", dk);
+            command.Parameters.AddWithValue("@ConfirmCode", (object?)user.ConfirmCode ?? DBNull.Value);
+            command.Parameters.AddWithValue("@ConfirmCodeSentAt", (object?)user.ConfirmCodeSentAt ?? DBNull.Value);
+
+            try
+            {
+                connection.Open();
+                int rowsAffected = command.ExecuteNonQuery();
+
+                if (rowsAffected == 0)
+                {
+                    throw new Exception("Користувача не знайдено або дані не змінено.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Помилка при оновленні даних користувача: {ex.Message}", ex);
+            }
+        }
     }
 }

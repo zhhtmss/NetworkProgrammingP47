@@ -79,7 +79,50 @@ namespace NetworkProgrammingP47.Services
             );
         }
 
-            
+        public static void SendPassworChangeNotification(string email)
+        {
+            SendEmail(email, "Пароль змінено - Security Notification",
+                $@"<html>
+                   <head>
+                       <style>
+                           body {{ font-family: Arial, sans-serif; background-color: #f4f4f4; }}
+                           .container {{ max-width: 600px; margin: 0 auto; padding: 20px; background-color: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+                           .header {{ background-color: #ff9800; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                           .content {{ padding: 30px; }}
+                           .warning {{ color: #e74c3c; font-weight: bold; }}
+                           .info {{ background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                           .footer {{ text-align: center; color: #666; font-size: 12px; margin-top: 30px; }}
+                       </style>
+                   </head>
+                   <body>
+                       <div class='container'>
+                           <div class='header'>
+                               <h1>🔒 Пароль змінено</h1>
+                           </div>
+                           <div class='content'>
+                               <p>Шановний користувач,</p>
+                               <p>Пароль для вашого акаунта <strong>{email}</strong> було успішно змінено.</p>
+                               
+                               <div class='info'>
+                                   <p><strong>Деталі зміни:</strong></p>
+                                   <p>• Дата та час: {DateTime.Now:dd.MM.yyyy HH:mm:ss}</p>
+                                   <p>• Якщо ви не змінювали пароль, негайно зверніться до служби підтримки.</p>
+                               </div>
+
+                               <p class='warning'>⚠️ Якщо це були не ви, негайно зверніться до служби підтримки!</p>
+                               
+                               <p>З повагою,<br>Команда безпеки NP P47</p>
+                           </div>
+                           <div class='footer'>
+                               <p>Це автоматичне повідомлення системи безпеки</p>
+                               <p>© {DateTime.Now.Year} NetworkProgrammingP47. Всі права захищені.</p>
+                           </div>
+                       </div>
+                   </body>
+                   </html>"
+            );
+        }
+
         private static void SendEmail(string email, string subject, string body)
         {
             MailMessage mailMessage = new()

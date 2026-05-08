@@ -14,35 +14,234 @@ namespace NetworkProgrammingP47
     internal class UserService
     {
         private DataAccessor dataAccessor;
+        private UserEntity? currentUser;
         public void Run()
         {
             try { dataAccessor = new DataAccessor();  } 
             catch { return; }
             while (true)
             {
-                Console.WriteLine(
-                    "\nСервіс роботи з користувачами:\n" +
-                    "1: реєстрація\n" +
-                    "2: автентифікація(вхід)\n" +
-                    "3: забув пароль\n" +
-                    "i: інсталювати таблиці БД\n" +
-                    "0: вихід"
-                );
-                var keyInfo = Console.ReadKey();
-                Console.WriteLine();
-                switch(keyInfo.KeyChar)
+                if (currentUser == null)
                 {
-                    case '0': return;
-                    case '1': SignUp(); break;
-                    case '2': SignIn(); break;
-                    case '3': ForgotPassword(); break;
-                    case 'i': try { dataAccessor.InstallTables(); } catch { return; } break;
-
-                    default: Console.WriteLine("\nВибір не розпізнано\n"); break;
+                    // Unauthorized menu
+                    ShowUnauthorizedMenu();
+                }
+                else
+                {
+                    // Authorized menu
+                    ShowAuthorizedMenu();
                 }
             }
-        } 
+        }
+        private void ShowUnauthorizedMenu()
+        {
+            Console.WriteLine(
+                "\nСервіс роботи з користувачами:\n" +
+                "1: реєстрація\n" +
+                "2: автентифікація(вхід)\n" +
+                "3: забув пароль\n" +
+                "i: інсталювати таблиці БД\n" +
+                "0: вихід"
+            );
+            var keyInfo = Console.ReadKey();
+            Console.WriteLine();
 
+            switch (keyInfo.KeyChar)
+            {
+                case '0': Environment.Exit(0); break;
+                case '1': SignUp(); break;
+                case '2': SignIn(); break;
+                case '3': ForgotPassword(); break;
+                case 'i': try { dataAccessor.InstallTables(); } catch { return; } break;
+                default: Console.WriteLine("\nВибір не розпізнано\n"); break;
+            }
+        }
+
+        private void ShowAuthorizedMenu()
+        {
+            Console.WriteLine(
+                $"\nВітаємо, {currentUser!.Name}!\n" +
+                "1: перегляд персональних даних (кабінет)\n" +
+                "2: змінити пароль\n" +
+                "3: редагувати дані\n" +
+                "0: вихід з акаунту"
+            );
+            var keyInfo = Console.ReadKey();
+            Console.WriteLine();
+
+            switch (keyInfo.KeyChar)
+            {
+                case '0': currentUser = null; break;
+                case '1': ViewProfile(); break;
+                case '2': ChangePassword(); break;
+                case '3': EditProfile(); break;
+                default: Console.WriteLine("\nВибір не розпізнано\n"); break;
+            }
+        }
+
+        private void ViewProfile()
+        {
+            Console.WriteLine("\n=== Особистий кабінет ===");
+            Console.WriteLine($"Ім'я: {currentUser!.Name}");
+            Console.WriteLine($"Email: {currentUser.Email}");
+            Console.WriteLine($"Email підтверджено: {(currentUser.ConfirmCode == null ? "Так" : "Ні")}");
+            Console.WriteLine($"Дата реєстрації: {currentUser.RegisteredAt}");
+
+            if (currentUser.ConfirmCode != null)
+            {
+                Console.WriteLine($"\nУ вас не підтверджена пошта. Код підтвердження було надіслано: {currentUser.ConfirmCodeSentAt}");
+                Console.Write("Бажаєте підтвердити зараз? (y/n): ");
+                if (Console.ReadLine()?.ToLower() == "y")
+                {
+                    ConfirmEmailAfterLogin();
+                }
+            }
+
+            Console.WriteLine("\nНатисніть будь-яку клавішу для продовження...");
+            Console.ReadKey();
+        }
+
+        private void ConfirmEmailAfterLogin()
+        {
+            Console.Write("Введіть код підтвердження: ");
+            int tries = 3;
+
+            while (tries > 0)
+            {
+                string code = Console.ReadLine()!;
+
+                if (string.IsNullOrEmpty(code))
+                {
+                    Console.WriteLine("Пошта лишається непідтвердженою");
+                    return;
+                }
+
+                if (code == currentUser!.ConfirmCode)
+                {
+                    try
+                    {
+                        dataAccessor.ConfirmEmail(currentUser);
+                        currentUser.ConfirmCode = null;
+                        Console.WriteLine("Email успішно підтверджено!");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Помилка підтвердження: {ex.Message}");
+                    }
+                    return;
+                }
+                tries--;
+                if (tries > 0)
+                {
+                    Console.Write($"Код невірний. Залишилось спроб: {tries}. Спробуйте ще раз: ");
+                }
+            }
+            Console.WriteLine("Ви вичерпали всі спроби. Пошта лишається непідтвердженою");
+        }
+
+        private void ChangePassword()
+        {
+            Console.WriteLine("\n=== Зміна паролю ===");
+
+            Console.Write("Введіть поточний пароль: ");
+            string? currentPassword = InputPassword();
+
+            if (currentPassword == null)
+            {
+                Console.WriteLine("Зміну паролю скасовано.");
+                return;
+            }
+
+            var userCheck = dataAccessor.Authenticate(currentUser!.Email, currentPassword);
+            if (userCheck == null)
+            {
+                Console.WriteLine("Поточний пароль невірний. Зміну паролю скасовано.");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.Write("Введіть новий пароль: ");
+            string? newPassword = InputPassword();
+
+            if (newPassword == null)
+            {
+                Console.WriteLine("Зміну паролю скасовано.");
+                return;
+            }
+
+            if (!Regex.IsMatch(newPassword, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$"))
+            {
+                Console.WriteLine("Новий пароль не відповідає вимогам безпеки.");
+                Console.WriteLine("Пароль має бути щонайменше 6 символів, " +
+                    "серед яких має бути цифра, літера та спецсимвол");
+                return;
+            }
+            Console.WriteLine();
+            Console.Write("Підтвердіть новий пароль: ");
+            string? confirmPassword = InputPassword();
+
+            if (confirmPassword == null)
+            {
+                Console.WriteLine("Зміну паролю скасовано.");
+                return;
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                Console.WriteLine("Паролі не співпадають. Зміну паролю скасовано.");
+                return;
+            }
+
+            try
+            {
+                currentUser.Dk = newPassword;
+                dataAccessor.UpdateUser(currentUser);
+                Console.WriteLine("Пароль успішно змінено!");
+
+                try
+                {
+                    EmailService.SendPassworChangeNotification(currentUser.Email);
+                }
+                catch{}
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Помилка при зміні паролю: {ex.Message}");
+            }
+        }
+
+        private void EditProfile()
+        {
+            Console.WriteLine("\n=== Редагування даних ===");
+            Console.WriteLine($"Поточне ім'я: {currentUser!.Name}");
+            Console.Write("Введіть нове ім'я (Enter - залишити без змін): ");
+
+            string newName = Console.ReadLine()!;
+
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                Console.WriteLine("Ім'я залишено без змін.");
+                return;
+            }
+
+            if (newName.Length < 2)
+            {
+                Console.WriteLine("Ім'я має містити щонайменше 2 символи.");
+                return;
+            }
+
+            try
+            {
+                string oldName = currentUser.Name;
+                currentUser.Name = newName;
+                dataAccessor.UpdateUser(currentUser);
+                Console.WriteLine($"Ім'я успішно змінено з '{oldName}' на '{newName}'!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Помилка при редагуванні даних: {ex.Message}");
+            }
+        }
 
         private void ForgotPassword()
         {
@@ -97,6 +296,7 @@ namespace NetworkProgrammingP47
                 Console.WriteLine("У вході відмовлено");
                 return;
             }
+            currentUser = userEntity;
             try
             {
                 EmailService.SendLoginNotification(userEntity.Email, DateTime.Now);
@@ -132,7 +332,10 @@ namespace NetworkProgrammingP47
                     }
                     if (code == userEntity.ConfirmCode)
                     {
-                        try { dataAccessor.ConfirmEmail(userEntity); } 
+                        try { 
+                            dataAccessor.ConfirmEmail(userEntity); 
+                            userEntity.ConfirmCode = null;
+                        } 
                         catch { return; }
                         break;
                     }

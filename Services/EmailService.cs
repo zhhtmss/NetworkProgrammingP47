@@ -53,7 +53,20 @@ namespace NetworkProgrammingP47.Services
             );
         }
 
-
+        public static void SendLoginNotification(string email, DateTime loginTime)
+        {
+            SendEmail(email, "Новий вхід до вашого акаунту",
+                $@"<html>
+                <h1>Шановний клієнте!</h1>
+                <p>Зафіксовано новий вхід до вашого акаунту з таким деталями:</p>
+                <ul>
+                    <li><strong>Дата та час входу:</strong> {loginTime:dd.MM.yyyy HH:mm:ss}</li>
+                    <li><strong>Спосіб автентифікації:</strong> пароль</li>
+                </ul>
+                <p style='color: red;'><strong>Якщо це були не ви, рекомендуємо негайно змінити пароль!</strong></p>
+                </html>"
+            );
+        }
 
         public static void SendConfirmCode(string email, string code)
         {

@@ -97,6 +97,15 @@ namespace NetworkProgrammingP47
                 Console.WriteLine("У вході відмовлено");
                 return;
             }
+            try
+            {
+                EmailService.SendLoginNotification(userEntity.Email, DateTime.Now);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Не вдалося надіслати сповіщення: {ex.Message}");
+            }
+
             Console.WriteLine($"Ви успішно увійшли як {userEntity.Name}");
             if (userEntity.ConfirmCode != null)
             {
